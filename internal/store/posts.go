@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -51,4 +53,46 @@ func (s *PostsStore) Create(ctx context.Context, post *Post) error {
 	}
 
 	return nil
+}
+
+func (s *PostsStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
+	query := `
+		SELECT id, title, content, user_id, tags, created_at, updated_at
+		FROM posts
+		WHERE id = $1
+	`
+
+	var createdAt, updatedAt pgtype.Timestamptz
+	var post Post
+	err := s.db.QueryRow(
+		ctx,
+		query,
+		postID,
+	).Scan(
+		&post.ID,
+		&post.Title,
+		&post.Content,
+		&post.UserID,
+		&post.Tags,
+		&createdAt,
+		&updatedAt,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	if createdAt.Valid {
+		post.CreatedAt = createdAt.Time.Format(time.RFC3339)
+	}
+	if updatedAt.Valid {
+		post.UpdatedAt = updatedAt.Time.Format(time.RFC3339)
+	}
+
+	return &post, nil
 }
