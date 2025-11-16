@@ -1,5 +1,8 @@
 {
   "editor.defaultFormatter": "golang.go",
   "editor.formatOnSave": true,
-  "go.formatTool": "gofmt"
+  "go.formatTool": "gofmt",
+  "[go]": {
+    "editor.defaultFormatter": "ms-vscode.Go"
+  }
 }
