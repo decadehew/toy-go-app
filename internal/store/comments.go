@@ -1,0 +1,57 @@
+package store
+
+import (
+	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Comment struct {
+	ID        int64  `json:"id"`
+	PostID    int64  `json:"post_id"`
+	UserID    int64  `json:"user_id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	User      User   `json:"user"`
+}
+
+type CommentsStore struct {
+	db *pgxpool.Pool
+}
+
+func (s *CommentsStore) GetByPostID(ctx context.Context, postID int64) ([]Comment, error) {
+	query := `
+		SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, u.username, u.id FROM comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.post_id = $1
+		ORDER BY c.created_at DESC
+	`
+
+	rows, err := s.db.Query(ctx, query, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	comments := []Comment{}
+	for rows.Next() {
+		var c Comment
+		c.User = User{}
+
+		var createdAt pgtype.Timestamptz
+		err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.Content, &createdAt, &c.User.Username, &c.User.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		if createdAt.Valid {
+			c.CreatedAt = createdAt.Time.Format(time.RFC3339)
+		}
+
+		comments = append(comments, c)
+	}
+
+	return comments, nil
+}
