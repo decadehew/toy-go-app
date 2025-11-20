@@ -3,6 +3,6 @@
   "editor.formatOnSave": true,
   "go.formatTool": "gofmt",
   "[go]": {
-    "editor.defaultFormatter": "ms-vscode.Go"
+    "editor.defaultFormatter": "golang.go"
   }
 }
