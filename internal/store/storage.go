@@ -3,11 +3,15 @@ package store
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrNotFound = errors.New("resource not found")
+var (
+	ErrNotFound          = errors.New("resource not found")
+	QueryTimeoutDuration = 5 * time.Second
+)
 
 type Storage struct {
 	Posts interface {

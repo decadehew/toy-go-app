@@ -102,6 +102,7 @@ type UpdatePostPayload struct {
 }
 
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
+	// 獲取 post 數據(指針類型)
 	post := getPostFromCtx(r)
 
 	var payload UpdatePostPayload

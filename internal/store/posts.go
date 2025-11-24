@@ -34,6 +34,9 @@ func (s *PostsStore) Create(ctx context.Context, post *Post) error {
 		RETURNING id,  created_at, updated_at
 	`
 
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	var createdAt, updatedAt pgtype.Timestamptz
 	err := s.db.QueryRow(
 		ctx,
@@ -41,8 +44,12 @@ func (s *PostsStore) Create(ctx context.Context, post *Post) error {
 		post.Title,
 		post.Content,
 		post.UserID,
-		pgtype.Array[string]{Elements: post.Tags},
+		post.Tags,
+		// pgtype.Array[string]{Elements: post.Tags},
 	).Scan(&post.ID, &createdAt, &updatedAt)
+	// Scan：把資料庫返回的數據讀取到 Go 變量中
+	// &：告訴 Scan 要把數據寫到哪個變量的地址
+	// Scan 的參數順序必須和 SQL RETURNING 的順序一致
 
 	if err != nil {
 		return err
@@ -64,6 +71,9 @@ func (s *PostsStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 		FROM posts
 		WHERE id = $1
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
 	var createdAt, updatedAt pgtype.Timestamptz
 	var post Post
@@ -104,6 +114,10 @@ func (s *PostsStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 func (s *PostsStore) Delete(ctx context.Context, postID int64) error {
 	query := `DELETE FROM posts WHERE id = $1`
 
+	// 為資料庫操作設定一個 5 秒的超時限制
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	res, err := s.db.Exec(ctx, query, postID)
 	if err != nil {
 		return err
@@ -117,6 +131,7 @@ func (s *PostsStore) Delete(ctx context.Context, postID int64) error {
 	return nil
 }
 
+// 它通過 修改傳入的指針指向的對象 來更新數據
 func (s *PostsStore) Update(ctx context.Context, post *Post) error {
 	query := `
 		UPDATE posts
@@ -125,7 +140,9 @@ func (s *PostsStore) Update(ctx context.Context, post *Post) error {
 		RETURNING version
 	`
 
-	var version int
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
 	err := s.db.QueryRow(
 		ctx,
 		query,
